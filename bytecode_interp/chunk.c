@@ -10,14 +10,16 @@ void initChunk(Chunk* chunk) {
 }
 
 void writeChunk(Chunk* chunk, uint8_t byte) {
+  // Grow capacity if needed
   if (chunk->capacity < chunk->count + 1) {
     int oldCapacity = chunk->capacity;
     chunk->capacity = GROW_CAPACITY(oldCapacity);
     chunk->code = GROW_ARRAY(uint8_t, chunk->code, oldCapacity, chunk->capacity);
   }
 
+  // Write new instruction to Chunk
   chunk->code[chunk->count] = byte;
-  chunk->count++;
+  ++(chunk->count);
 }
 
 void freeChunk(Chunk* chunk) {
