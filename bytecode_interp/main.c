@@ -1,5 +1,6 @@
 #include "common.h"
 #include "chunk.h"
+#include "debug.h"
 
 /**
  * Goal of this project is to write a bytecode interpreter
@@ -32,7 +33,13 @@
 int main(int argc, const char* argv[]) {
   Chunk chunk;
   initChunk(&chunk);
+
+  int constant = addConstant(&chunk, 1.2);  // The consant value 1.2 is added to chunk's constant pool
+  writeChunk(&chunk, OP_CONSTANT);  // Tells interpreter that next byte in chunk is the index of the constant value
+  writeChunk(&chunk, constant);     // The index of the consant value
   writeChunk(&chunk, OP_RETURN);
+
+  disassembleChunk(&chunk, "test chunk");
   freeChunk(&chunk);
   return 0;
 }
