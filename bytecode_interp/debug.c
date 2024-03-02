@@ -32,6 +32,12 @@ static int constantInstruction(const char* name, Chunk* chunk, int offset) {
 int disassembleInstruction(Chunk* chunk, int offset) {
   // Print offset telling user where in chunk current instruction is
   printf("%04d ", offset);
+  if (offset > 0 &&
+      chunk->lines[offset] == chunk->lines[offset - 1]) {
+    printf("   | ");    // This bytecode instruction is on the same line as the previous instruction
+  } else {
+    printf("%4d ", chunk->lines[offset]);
+  }
   // Read instruction at offset
   uint8_t instruction = chunk->code[offset];
   // Call utility function for displaying the instruction based on OpCode read

@@ -19,7 +19,7 @@ void writeValueArray(ValueArray* array, Value value) {
 
   // Write new value to values
   array->values[array->count] = value;
-  array->count++;
+  ++(array->count);
 }
 
 void freeValueArray(ValueArray* array) {

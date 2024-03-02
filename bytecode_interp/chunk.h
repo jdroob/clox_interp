@@ -5,7 +5,7 @@
 #include "value.h"
 
 /**
- * Here is where we will define the instruction set
+ * Here is where we will define the bytecode instruction set
 */
 typedef enum {
   OP_CONSTANT,
@@ -23,16 +23,17 @@ typedef struct {
   int count;
   int capacity;
   uint8_t* code;
+  int* lines;
   ValueArray constants;
 } Chunk;
 
 /**
  * Declare functions for initializing a new Chunk,
- * writing instruction(s) to a Chunk, and freeing up
+ * writing to a Chunk, and freeing up
  * a Chunk that is no longer needed.
 */
 void initChunk(Chunk* chunk);
-void writeChunk(Chunk* chunk, uint8_t byte);
+void writeChunk(Chunk* chunk, uint8_t byte, int line);
 int addConstant(Chunk* chunk, Value value);
 void freeChunk(Chunk* chunk);
 
