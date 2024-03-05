@@ -1,3 +1,7 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "common.h"
 #include "chunk.h"
 #include "debug.h"
@@ -31,20 +35,231 @@
  *  
 */
 
+static void repl() {
+  char line[1024];
+  for (;;) {
+    printf("> ");
+
+    if (!fgets(line, sizeof(line), stdin)) {
+      printf("\n");
+      break;
+    }
+
+    interpret(line);
+  }
+}
+
+static char* readFile(const char* path) {
+  FILE* file = fopen(path, "rb");
+  if (file == NULL) {
+    fprintf(stderr, "Could not open file \"%s\".\n", path);
+    exit(74);
+  }
+
+  fseek(file, 0L, SEEK_END);
+  size_t fileSize = ftell(file);
+  rewind(file);
+
+  char* buffer = (char*)malloc(fileSize + 1);
+  if (buffer == NULL) {
+    fprintf(stderr, "Not enough memor to read \"%s\".\n", path);
+    exit(74);
+  }
+
+  size_t bytesRead = fread(buffer, sizeof(char), fileSize, file);
+  if (bytesRead < fileSize) {
+    fprintf(stderr, "Could not read file \"%s\".\n", path);
+    exit(74);
+  }
+  
+  buffer[bytesRead] = '\0';
+
+  fclose(file);
+  return buffer;
+}
+
+static void runFile(const char* path) {
+  char* source = readFile(path);
+  InterpretResult result = interpret(source);
+  free(source);
+
+  if (result == INTERPRET_COMPILE_ERROR) exit(65);
+  if (result == INTERPRET_RUNTIME_ERROR) exit(70);
+}
+
 int main(int argc, const char* argv[]) {
   initVM();
 
-  Chunk chunk;
-  initChunk(&chunk);
+  /**
+   * What's going on down there?
+   * 
+   * We're checking to see how many args are passed in when running
+   * a command to to execute the interpreter.
+   * 
+   * If no arguments are provided, we're directed to the REPL.
+   * 
+   * If 1 argument is provided, it's understood to be the path to the file to run.
+   * 
+   * We're testing for 1 and 2 arguments instead of 0 and 1 b/c the first argument
+   * is always the name of the executable.
+  */
 
-  int constantIndex = addConstant(&chunk, 1.2);  // The consant value 1.2 is added to chunk's constant pool
-  writeChunk(&chunk, OP_CONSTANT, 123);          // Tells interpreter that next byte in chunk is the index of the constant value
-  writeChunk(&chunk, constantIndex, 123);        // The index of the consant value
-  writeChunk(&chunk, OP_RETURN, 123);            // Return instruction
+  if (argc == 1) {
+    repl();
+  } else if (argc == 2) {
+    runFile(argv[1]);
+  } else {
+    fprintf(stderr, "Usage clox [path]\n");
+    exit(64);
+  }
 
-  disassembleChunk(&chunk, "test chunk");
-  interpret(&chunk);
   freeVM();
-  freeChunk(&chunk);
   return 0;
+
+
+  //=================================================================================
+  //  Test 1: -( (1.2 + 3.4) / 5.6)
+  //=================================================================================
+  // initVM();
+  // Chunk chunk;
+  // initChunk(&chunk);
+
+  // int constantIndex = addConstant(&chunk, 1.2);  // The consant value 1.2 is added to chunk's constant pool
+  // writeChunk(&chunk, OP_CONSTANT, 123);          // Tells interpreter that next byte in chunk is the index of the constant value
+  // writeChunk(&chunk, constantIndex, 123);        // The index of the consant value
+
+  // constantIndex = addConstant(&chunk, 3.4);
+  // writeChunk(&chunk, OP_CONSTANT, 123);
+  // writeChunk(&chunk, constantIndex, 123);
+
+  // writeChunk(&chunk, OP_ADD, 123);    // 1.2 + 3.4
+
+  // constantIndex = addConstant(&chunk, 5.6);
+  // writeChunk(&chunk, OP_CONSTANT, 123);
+  // writeChunk(&chunk, constantIndex, 123);
+
+  // writeChunk(&chunk, OP_DIVIDE, 123);   // 4.6 / 5.6
+  // writeChunk(&chunk, OP_NEGATE, 123);   // -(4.6 / 5.6)
+
+  // writeChunk(&chunk, OP_RETURN, 123);            // Return instruction
+
+  // disassembleChunk(&chunk, "Test 1: -( (1.2 + 3.4) / 5.6)");
+  // interpret(&chunk);
+  // freeVM();
+  // freeChunk(&chunk);
+  // //=================================================================================
+  // //=================================================================================
+
+  // //=================================================================================
+  // //  Test 2: 1*2 + 3
+  // //=================================================================================
+  // initVM();
+  // // Chunk chunk;
+  // initChunk(&chunk);
+
+  // constantIndex = addConstant(&chunk, 1.0);
+  // writeChunk(&chunk, OP_CONSTANT, 345);
+  // writeChunk(&chunk, constantIndex, 345);
+
+  // constantIndex = addConstant(&chunk, 2.0);
+  // writeChunk(&chunk, OP_CONSTANT, 345);
+  // writeChunk(&chunk, constantIndex, 345);
+
+  // writeChunk(&chunk, OP_MULTIPLY, 345);   // 1.0 * 2.0
+
+  // constantIndex = addConstant(&chunk, 3.0);
+  // writeChunk(&chunk, OP_CONSTANT, 345);
+  // writeChunk(&chunk, constantIndex, 345);
+
+  // writeChunk(&chunk, OP_ADD, 345);
+
+  // writeChunk(&chunk, OP_RETURN, 123);            // Return instruction
+
+  // disassembleChunk(&chunk, "Test 2: 1*2 + 3");
+  // interpret(&chunk);
+  // freeVM();
+  // freeChunk(&chunk);
+  // //=================================================================================
+  // //=================================================================================
+  
+  // //=================================================================================
+  // //  Test 3: 1+2 * 3
+  // //=================================================================================
+  // initVM();
+  // // Chunk chunk;
+  // initChunk(&chunk);
+
+
+  // constantIndex = addConstant(&chunk, 2.0);
+  // writeChunk(&chunk, OP_CONSTANT, 789);
+  // writeChunk(&chunk, constantIndex, 789);
+
+  // constantIndex = addConstant(&chunk, 3.0);
+  // writeChunk(&chunk, OP_CONSTANT, 789);
+  // writeChunk(&chunk, constantIndex, 789);
+
+  // writeChunk(&chunk, OP_MULTIPLY, 789);   // 2.0 * 3.0
+  
+  // constantIndex = addConstant(&chunk, 1.0);
+  // writeChunk(&chunk, OP_CONSTANT, 789);
+  // writeChunk(&chunk, constantIndex, 789);
+
+  // writeChunk(&chunk, OP_ADD, 789);   // 2.0 * 3.0 + 1
+
+  // writeChunk(&chunk, OP_RETURN, 789);            // Return instruction
+
+  // disassembleChunk(&chunk, "Test 3: 1+2 * 3");
+  // interpret(&chunk);
+  // freeVM();
+  // freeChunk(&chunk);
+  // //=================================================================================
+  // //=================================================================================
+
+  // //=================================================================================
+  // //  Test 4: 1+2 * 3 - 4 / -5
+  // //=================================================================================
+  // initVM();
+  // // Chunk chunk;
+  // initChunk(&chunk);
+
+  // constantIndex = addConstant(&chunk, 2.0);
+  // writeChunk(&chunk, OP_CONSTANT, -123);
+  // writeChunk(&chunk, constantIndex, -123);
+
+  // constantIndex = addConstant(&chunk, 3.0);
+  // writeChunk(&chunk, OP_CONSTANT, -123);
+  // writeChunk(&chunk, constantIndex, -123);
+
+  // writeChunk(&chunk, OP_MULTIPLY, -123);  // 2 * 3
+
+  // constantIndex = addConstant(&chunk, 1.0);
+  // writeChunk(&chunk, OP_CONSTANT, -123);
+  // writeChunk(&chunk, constantIndex, -123);
+
+  // writeChunk(&chunk, OP_ADD, -123);   // 2*3 + 1
+
+  // constantIndex = addConstant(&chunk, 4.0);
+  // writeChunk(&chunk, OP_CONSTANT, -123);
+  // writeChunk(&chunk, constantIndex, -123);
+
+  // constantIndex = addConstant(&chunk, 5.0);
+  // writeChunk(&chunk, OP_CONSTANT, -123);
+  // writeChunk(&chunk, constantIndex, -123);
+
+  // writeChunk(&chunk, OP_NEGATE, -123);    // -5
+
+  // writeChunk(&chunk, OP_DIVIDE, -123);    // 4 / -5
+
+  // writeChunk(&chunk, OP_SUBTRACT, -123);  // 7 - (-0.8)
+
+  // writeChunk(&chunk, OP_RETURN, -123);            // Return instruction
+
+  // disassembleChunk(&chunk, "Test 4: 1+2 * 3 - 4 / -5");
+  // interpret(&chunk);
+  // freeVM();
+  // freeChunk(&chunk);
+  //=================================================================================
+  //=================================================================================
+
+  // return 0;
 }
